@@ -4,11 +4,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>原神キャラガチャ計算機（掴みし明光・完全構造化）</title>
+  <title>原神キャラガチャ計算機（掴みし明光・完全構造化＋PU確定判定）</title>
   <style>
     body { font-family: sans-serif; background: #f4f4f4; padding: 1em; color: #333; }
     label { display: block; margin-top: 1em; }
-    input { width: 100%; padding: 0.5em; margin-top: 0.3em; }
+    input[type="number"], input[type="date"] {
+      width: 100%; padding: 0.5em; margin-top: 0.3em;
+    }
     button { margin-top: 1.5em; padding: 0.75em; width: 100%; font-weight: bold; }
     .result { margin-top: 2em; padding: 1em; background: white; border-radius: 8px; }
     h2 { margin-top: 1.5em; }
@@ -16,7 +18,7 @@
   </style>
 </head>
 <body>
-  <h1>原神キャラガチャ計算機（掴みし明光：完全構造化）</h1>
+  <h1>原神キャラガチャ期待値計算（完全掴みし明光対応）</h1>
 
   <label>空月の祝福を購入している:
     <input type="checkbox" id="welkin">
@@ -36,6 +38,10 @@
 
   <label>現在の「すり抜けカウント」:
     <input type="number" id="missCount" value="0" min="0" max="3">
+  </label>
+
+  <label>前回すり抜け後、PUを引いたか（次がPU確定か）:
+    <input type="checkbox" id="guaranteed">
   </label>
 
   <label>ガチャ開始日:
@@ -59,30 +65,28 @@
   </div>
 
   <script>
-    function calculateWorstCase(puTarget, missCount) {
+    function calculateWorstCase(puTarget, missCount, guaranteed) {
       let pulls = 0;
       let puCount = 0;
+      let meikouReady = (missCount >= 3);
 
       while (puCount < puTarget) {
-        if (missCount >= 3) {
-          // 掴みし明光発動：すり抜け枠がPUに変換される
+        if (meikouReady) {
           pulls += 90;
           missCount = 0;
+          guaranteed = false;
+          meikouReady = false;
+          puCount++;
+        } else if (guaranteed) {
+          pulls += 90;
+          guaranteed = false;
           puCount++;
         } else {
-          // すり抜け枠
           pulls += 90;
           missCount++;
-
+          guaranteed = true;
           if (missCount >= 3) {
-            // 次で掴みし明光が発動する
-            pulls += 90;
-            missCount = 0;
-            puCount++;
-          } else {
-            // PU確定枠
-            pulls += 90;
-            puCount++;
+            meikouReady = true;
           }
         }
       }
@@ -96,6 +100,7 @@
       const fates = parseInt(document.getElementById("fates").value) || 0;
       const charPulls = parseInt(document.getElementById("charPulls").value) || 0;
       const missCount = parseInt(document.getElementById("missCount").value) || 0;
+      const guaranteed = document.getElementById("guaranteed").checked;
       const puTarget = parseInt(document.getElementById("puTarget").value) || 1;
       const startDate = new Date(document.getElementById("startDate").value);
       const endDate = new Date(document.getElementById("endDate").value);
@@ -111,7 +116,7 @@
       const pullsAvailable = Math.floor(totalPrimogems / 160);
       const currentPulls = pullsAvailable + charPulls;
 
-      const worstTotalPulls = calculateWorstCase(puTarget, missCount);
+      const worstTotalPulls = calculateWorstCase(puTarget, missCount, guaranteed);
       const worstShort = Math.max(0, worstTotalPulls - currentPulls);
       const worstPrimogems = worstShort * 160;
       const worstYen = Math.ceil((worstPrimogems / 8080) * 12000);
@@ -131,7 +136,7 @@
         <p><strong>想定課金額（期待値）: 約 ${expectedYen.toLocaleString()} 円</strong></p>
 
         <h2>【最悪の場合のシミュレーション】（掴みし明光対応）</h2>
-        <p>現在のすり抜けカウント: ${missCount}回</p>
+        <p>現在のすり抜けカウント: ${missCount}回 / 次はPU確定: ${guaranteed ? 'はい' : 'いいえ'}</p>
         <p>必要最大祈願数: ${worstTotalPulls}回</p>
         <p>不足祈願数（最大）: <strong>${worstShort}回</strong></p>
         <p>追加原石（最悪）: ${worstPrimogems}個</p>
