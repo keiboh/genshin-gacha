@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>原神ガチャ期待値計算</title>
+  <title>原神ガチャ期待値計算（掴みし明光対応）</title>
   <style>
     body { font-family: sans-serif; padding: 1em; background-color: #f5f5f5; color: #333; }
     label { display: block; margin-top: 1em; }
@@ -12,6 +12,7 @@
     button { margin-top: 1.5em; padding: 0.75em; width: 100%; font-weight: bold; }
     .result { margin-top: 2em; padding: 1em; background: #fff; border-radius: 8px; }
     h2 { margin-top: 1.5em; color: #2a2a2a; }
+    .note { margin-top: 1em; font-size: 0.9em; color: #666; }
   </style>
 </head>
 <body>
@@ -52,9 +53,13 @@
   <button onclick="calculate()">計算する</button>
 
   <div class="result" id="result"></div>
+  <div class="note">
+    ※課金額は「12,000円で8,080原石（ボーナス込み）」の最もコスパの良いパックを基準にしています。<br>
+    ※初回2倍が残っている場合は、これより安く済む可能性があります。
+  </div>
 
   <script>
-    function calculateMaxPulls(puTarget, missCount) {
+    function calculateMeikouMaxPulls(puTarget, missCount) {
       let pulls = 0;
       let puCount = 0;
 
@@ -65,7 +70,6 @@
         } else {
           pulls += 90;
           missCount += 1;
-
           if (missCount >= 3) {
             pulls += 90;
             missCount = 0;
@@ -75,6 +79,7 @@
         }
         puCount += 1;
       }
+
       return pulls;
     }
 
@@ -99,15 +104,17 @@
       const pullsAvailable = Math.floor(totalPrimogems / 160);
       const currentPulls = pullsAvailable + charPulls;
 
-      const worstTotalPulls = calculateMaxPulls(puTarget, missCount);
+      // 掴みし明光仕様での最悪祈願数
+      const worstTotalPulls = calculateMeikouMaxPulls(puTarget, missCount);
       const worstShort = Math.max(0, worstTotalPulls - currentPulls);
       const worstPrimogems = worstShort * 160;
-      const worstYen = Math.ceil((worstPrimogems / 6480) * 12000);
+      const worstYen = Math.ceil((worstPrimogems / 8080) * 12000); // コスパパック基準！
 
+      // 期待値（75連/PU）
       const expectedPulls = Math.ceil(75 * puTarget);
       const expectedShort = Math.max(0, expectedPulls - currentPulls);
       const expectedPrimogems = expectedShort * 160;
-      const expectedYen = Math.ceil((expectedPrimogems / 6480) * 12000);
+      const expectedYen = Math.ceil((expectedPrimogems / 8080) * 12000);
 
       const result = document.getElementById("result");
       result.innerHTML = `
