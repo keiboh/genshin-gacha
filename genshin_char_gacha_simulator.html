@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>原神キャラガチャ計算機（掴みし明光 完全修正）</title>
+  <title>原神キャラガチャ計算機（掴みし明光：状態管理版）</title>
   <style>
     body { font-family: sans-serif; padding: 1em; background-color: #f5f5f5; color: #333; }
     label { display: block; margin-top: 1em; }
@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>原神キャラガチャ期待値計算</h1>
+  <h1>原神キャラガチャ期待値計算（掴みし明光：状態管理版）</h1>
 
   <label>空月の祝福を購入している:
     <input type="checkbox" id="welkin" />
@@ -62,27 +62,35 @@
     function calculateMeikouMaxPulls(puTarget, missCount) {
       let pulls = 0;
       let puCount = 0;
+      let guaranteed = false;
+      let meikou = false;
 
       while (puCount < puTarget) {
-        let used = 0;
-
-        if (missCount >= 3) {
-          used += 90;
+        // 掴みし明光が発動している状態で「すり抜け」になったら → PU強制
+        if (meikou) {
+          pulls += 90;
+          puCount++;
           missCount = 0;
-        } else {
-          used += 90;
-          missCount++;
-
-          if (missCount >= 3) {
-            used += 90;
-            missCount = 0;
-          } else {
-            used += 90;
-          }
+          guaranteed = false;
+          meikou = false;
+          continue;
         }
 
-        pulls += used;
-        puCount++;
+        // 最悪パターンとして毎回すり抜ける想定（50%抽選を無視）
+        if (!guaranteed) {
+          // すり抜け
+          pulls += 90;
+          missCount++;
+          guaranteed = true;
+          if (missCount === 3) {
+            meikou = true;
+          }
+        } else {
+          // PU確定
+          pulls += 90;
+          puCount++;
+          guaranteed = false;
+        }
       }
 
       return pulls;
