@@ -2,52 +2,52 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>原神キャラガチャ計算機（掴みし明光・完全対応）</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>原神キャラガチャ計算機（掴みし明光・完全構造化）</title>
   <style>
-    body { font-family: sans-serif; padding: 1em; background-color: #f5f5f5; color: #333; }
+    body { font-family: sans-serif; background: #f4f4f4; padding: 1em; color: #333; }
     label { display: block; margin-top: 1em; }
-    input, select { width: 100%; padding: 0.5em; margin-top: 0.2em; }
+    input { width: 100%; padding: 0.5em; margin-top: 0.3em; }
     button { margin-top: 1.5em; padding: 0.75em; width: 100%; font-weight: bold; }
-    .result { margin-top: 2em; padding: 1em; background: #fff; border-radius: 8px; }
-    h2 { margin-top: 1.5em; color: #2a2a2a; }
-    .note { margin-top: 1em; font-size: 0.9em; color: #666; }
+    .result { margin-top: 2em; padding: 1em; background: white; border-radius: 8px; }
+    h2 { margin-top: 1.5em; }
+    .note { font-size: 0.9em; color: #666; margin-top: 1em; }
   </style>
 </head>
 <body>
-  <h1>原神キャラガチャ期待値計算（完全掴みし明光対応）</h1>
+  <h1>原神キャラガチャ計算機（掴みし明光：完全構造化）</h1>
 
   <label>空月の祝福を購入している:
-    <input type="checkbox" id="welkin" />
+    <input type="checkbox" id="welkin">
   </label>
 
   <label>手持ち原石:
-    <input type="number" id="primogems" value="0" />
+    <input type="number" id="primogems" value="0">
   </label>
 
   <label>紡がれた運命（所持数）:
-    <input type="number" id="fates" value="0" />
+    <input type="number" id="fates" value="0">
   </label>
 
   <label>現在のキャラガチャ祈願回数:
-    <input type="number" id="charPulls" value="0" />
+    <input type="number" id="charPulls" value="0">
   </label>
 
   <label>現在の「すり抜けカウント」:
-    <input type="number" id="missCount" value="0" min="0" max="3"/>
+    <input type="number" id="missCount" value="0" min="0" max="3">
   </label>
 
   <label>ガチャ開始日:
-    <input type="date" id="startDate" />
+    <input type="date" id="startDate">
   </label>
 
   <label>ガチャ終了日:
-    <input type="date" id="endDate" />
+    <input type="date" id="endDate">
   </label>
 
   <label>目標PUキャラ数:
-    <input type="number" id="puTarget" value="1" min="1" max="8" />
+    <input type="number" id="puTarget" value="1" min="1" max="8">
   </label>
 
   <button onclick="calculate()">計算する</button>
@@ -59,34 +59,31 @@
   </div>
 
   <script>
-    function calculateMeikouMaxPulls(puTarget, missCount) {
+    function calculateWorstCase(puTarget, missCount) {
       let pulls = 0;
       let puCount = 0;
-      let guaranteed = false;
-      let meikouReady = (missCount >= 3);
 
       while (puCount < puTarget) {
-        // 掴みし明光がONかつ「すり抜けに該当するはず」→ PUに変換
-        if (meikouReady) {
+        if (missCount >= 3) {
+          // 掴みし明光発動：すり抜け枠がPUに変換される
           pulls += 90;
-          puCount++;
           missCount = 0;
-          guaranteed = false;
-          meikouReady = false;
-          continue;
-        }
-
-        // 最悪ケース：PU枠でまずすり抜け（→PU確定）
-        if (!guaranteed) {
+          puCount++;
+        } else {
+          // すり抜け枠
           pulls += 90;
           missCount++;
-          guaranteed = true;
-          if (missCount === 3) meikouReady = true;
-        } else {
-          // PU確定枠
-          pulls += 90;
-          puCount++;
-          guaranteed = false;
+
+          if (missCount >= 3) {
+            // 次で掴みし明光が発動する
+            pulls += 90;
+            missCount = 0;
+            puCount++;
+          } else {
+            // PU確定枠
+            pulls += 90;
+            puCount++;
+          }
         }
       }
 
@@ -114,7 +111,7 @@
       const pullsAvailable = Math.floor(totalPrimogems / 160);
       const currentPulls = pullsAvailable + charPulls;
 
-      const worstTotalPulls = calculateMeikouMaxPulls(puTarget, missCount);
+      const worstTotalPulls = calculateWorstCase(puTarget, missCount);
       const worstShort = Math.max(0, worstTotalPulls - currentPulls);
       const worstPrimogems = worstShort * 160;
       const worstYen = Math.ceil((worstPrimogems / 8080) * 12000);
