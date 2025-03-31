@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>原神ガチャシミュレーター</title>
+  <style>
+    body { font-family: sans-serif; background: #f4f4f4; padding: 1em; color: #333; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 1em; border-radius: 8px; }
+    h1 { font-size: 1.5em; margin-bottom: 0.5em; }
+    label { display: block; margin-top: 1em; }
+    input[type='number'], input[type='date'] {
+      width: 100%; padding: 0.5em; margin-top: 0.3em;
+    }
+    button { padding: 0.75em; font-weight: bold; cursor: pointer; }
+    .result { margin-top: 2em; padding: 1em; background: #f9f9f9; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    th, td { border: 1px solid #ccc; padding: 0.5em; text-align: center; }
+    th { background: #f0f0f0; }
+    .note { font-size: 0.9em; color: #666; margin-top: 1em; }
+    .btns { display: flex; gap: 1em; margin-top: 1.5em; }
+    h2 { margin-top: 1.5em; font-size: 1.1em; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>原神キャラガチャシミュレーター</h1>
+    <p>期待値（平均）と最悪の場合を比較し、原石・課金額をシミュレーションします。</p>
+
+    <h2>📦 所持情報</h2>
+    <label>手持ち原石:
+      <input type="number" id="primogems" value="0">
+    </label>
+    <label>紡がれた運命（所持数）:
+      <input type="number" id="fates" value="0">
+    </label>
+    <label>空月の祝福を購入している:
+      <input type="checkbox" id="welkin">
+    </label>
+
+    <h2>🎯 ガチャ状態</h2>
+    <label>現在のキャラガチャ祈願回数:
+      <input type="number" id="currentPulls" value="0">
+    </label>
+    <label>前回すり抜けた（次がPU確定）:
+      <input type="checkbox" id="guaranteed">
+    </label>
+    <label>ガチャ終了日:
+      <input type="date" id="endDate">
+    </label>
+
+    <h2>🏆 目標</h2>
+    <label>目標PUキャラ数:
+      <input type="number" id="targetPU" value="1" min="1">
+    </label>
+
+    <div class="btns">
+      <button onclick="simulate()" style="flex: 1;">シミュレーション</button>
+      <button onclick="clearForm()" style="flex: 1;">クリア</button>
+    </div>
+
+    <div class="result" id="result"></div>
+
+    <div class="note">
+      ※星5排出率は1〜73連:0.6%、74連〜:1連ごとに+6%（最大90連で100%）で計算。<br>
+      ※PU確率は50%、掴みし明光（すり抜け3連続でPU化）対応済み。<br>
+      ※課金額は「12,000円で8,080原石（オマケ込み）」で算出。
+    </div>
+  </div>
+
+  <script>
+    function getStar5Probability(pity) {
+      if (pity <= 73) return 0.006;
+      if (pity < 90) return 0.006 + 0.06 * (pity - 73);
+      return 1.0;
+    }
+
+    function simulateExpectedPU(targetPU, guaranteedStart) {
+      const trials = 10000;
+      let results = [];
+
+      for (let i = 0; i < trials; i++) {
+        let pulls = 0, puCount = 0;
+        let pity = 0;
+        let guaranteed = guaranteedStart;
+        let missStreak = guaranteed ? 0 : 1;
+
+        while (puCount < targetPU) {
+          pity++;
+          pulls++;
+          if (Math.random() < getStar5Probability(pity)) {
+            pity = 0;
+            if (missStreak >= 3) {
+              puCount++;
+              guaranteed = false;
+              missStreak = 0;
+            } else if (guaranteed || Math.random() < 0.5) {
+              puCount++;
+              guaranteed = false;
+              missStreak = 0;
+            } else {
+              guaranteed = true;
+              missStreak++;
+            }
+          }
+        }
+
+        results.push(pulls);
+      }
+
+      return Math.round(results.reduce((a, b) => a + b, 0) / trials);
+    }
+
+    function simulate() {
+      const primogems = parseInt(document.getElementById("primogems").value) || 0;
+      const fates = parseInt(document.getElementById("fates").value) || 0;
+      const welkin = document.getElementById("welkin").checked;
+      const currentPulls = parseInt(document.getElementById("currentPulls").value) || 0;
+      const guaranteed = document.getElementById("guaranteed").checked;
+      const targetPU = parseInt(document.getElementById("targetPU").value) || 1;
+      const endDateRaw = document.getElementById("endDate").value;
+      const today = new Date();
+      const endDate = endDateRaw ? new Date(endDateRaw) : today;
+      const daysLeft = Math.max(0, Math.floor((endDate - today) / (1000 * 60 * 60 * 24)));
+
+      const fatePrimogems = fates * 160;
+      const futurePrimogems = daysLeft * (welkin ? 150 : 60);
+      const totalPrimogems = primogems + fatePrimogems + futurePrimogems;
+      const totalPulls = Math.floor(totalPrimogems / 160) + currentPulls;
+
+      // 最悪ケース
+      let worstPulls = 0, puCount = 0;
+      let streak = guaranteed ? 0 : 1;
+      let nextGuaranteed = guaranteed;
+      while (puCount < targetPU) {
+        if (streak >= 3) {
+          worstPulls += 90;
+          puCount++;
+          streak = 0;
+          nextGuaranteed = false;
+        } else if (nextGuaranteed) {
+          worstPulls += 90;
+          puCount++;
+          nextGuaranteed = false;
+        } else {
+          worstPulls += 180;
+          puCount++;
+          streak++;
+          nextGuaranteed = false;
+        }
+      }
+
+      // 期待値（リアル排出率対応）
+      const expectedPulls = simulateExpectedPU(targetPU, guaranteed);
+
+      const shortExpected = Math.max(0, expectedPulls - totalPulls);
+      const shortWorst = Math.max(0, worstPulls - totalPulls);
+
+      const gemExpected = shortExpected * 160;
+      const gemWorst = shortWorst * 160;
+
+      const yenExpected = Math.ceil((gemExpected / 8080) * 12000);
+      const yenWorst = Math.ceil((gemWorst / 8080) * 12000);
+
+      document.getElementById("result").innerHTML = `
+        <h2>原石状況</h2>
+        <ul>
+          <li>原石: ${primogems}個</li>
+          <li>紡がれた運命: ${fates}個（= ${fatePrimogems}原石）</li>
+          ${endDateRaw ? `<li>今後のログイン原石: ${futurePrimogems}個（${daysLeft}日分）</li>` : ""}
+          <li><strong>合計見込み原石数: ${totalPrimogems}個（${totalPulls}回）</strong></li>
+        </ul>
+        <h2>シミュレーション結果</h2>
+        <table>
+          <tr><th>項目</th><th>期待値（平均）</th><th>最悪の場合</th></tr>
+          <tr><td>必要祈願数</td><td>${expectedPulls}回</td><td>${worstPulls}回</td></tr>
+          <tr><td>不足祈願数</td><td>${shortExpected}回</td><td>${shortWorst}回</td></tr>
+          <tr><td>不足原石数</td><td>${gemExpected}</td><td>${gemWorst}</td></tr>
+          <tr><td>課金額の目安</td><td>¥${yenExpected.toLocaleString()}</td><td>¥${yenWorst.toLocaleString()}</td></tr>
+        </table>
+      `;
+    }
+  
+    function clearForm() {
+      document.getElementById("primogems").value = 0;
+      document.getElementById("fates").value = 0;
+      document.getElementById("welkin").checked = false;
+      document.getElementById("currentPulls").value = 0;
+      document.getElementById("guaranteed").checked = false;
+      document.getElementById("endDate").value = "";
+      document.getElementById("targetPU").value = 1;
+      document.getElementById("result").innerHTML = "";
+    }
+    </script>
+</body>
+</html>
