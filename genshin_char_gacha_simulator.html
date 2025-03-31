@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>原神キャラガチャ計算機（掴みし明光：状態管理版）</title>
+  <title>原神キャラガチャ計算機（掴みし明光・完全対応）</title>
   <style>
     body { font-family: sans-serif; padding: 1em; background-color: #f5f5f5; color: #333; }
     label { display: block; margin-top: 1em; }
@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>原神キャラガチャ期待値計算（掴みし明光：状態管理版）</h1>
+  <h1>原神キャラガチャ期待値計算（完全掴みし明光対応）</h1>
 
   <label>空月の祝福を購入している:
     <input type="checkbox" id="welkin" />
@@ -47,7 +47,7 @@
   </label>
 
   <label>目標PUキャラ数:
-    <input type="number" id="puTarget" value="1" min="1" max="7" />
+    <input type="number" id="puTarget" value="1" min="1" max="8" />
   </label>
 
   <button onclick="calculate()">計算する</button>
@@ -63,30 +63,27 @@
       let pulls = 0;
       let puCount = 0;
       let guaranteed = false;
-      let meikou = false;
+      let meikouReady = (missCount >= 3);
 
       while (puCount < puTarget) {
-        // 掴みし明光が発動している状態で「すり抜け」になったら → PU強制
-        if (meikou) {
+        // 掴みし明光がONかつ「すり抜けに該当するはず」→ PUに変換
+        if (meikouReady) {
           pulls += 90;
           puCount++;
           missCount = 0;
           guaranteed = false;
-          meikou = false;
+          meikouReady = false;
           continue;
         }
 
-        // 最悪パターンとして毎回すり抜ける想定（50%抽選を無視）
+        // 最悪ケース：PU枠でまずすり抜け（→PU確定）
         if (!guaranteed) {
-          // すり抜け
           pulls += 90;
           missCount++;
           guaranteed = true;
-          if (missCount === 3) {
-            meikou = true;
-          }
+          if (missCount === 3) meikouReady = true;
         } else {
-          // PU確定
+          // PU確定枠
           pulls += 90;
           puCount++;
           guaranteed = false;
@@ -136,7 +133,7 @@
         <p>追加原石（期待値）: ${expectedPrimogems}個</p>
         <p><strong>想定課金額（期待値）: 約 ${expectedYen.toLocaleString()} 円</strong></p>
 
-        <h2>【最悪の場合のシミュレーション】（掴みし明光あり）</h2>
+        <h2>【最悪の場合のシミュレーション】（掴みし明光対応）</h2>
         <p>現在のすり抜けカウント: ${missCount}回</p>
         <p>必要最大祈願数: ${worstTotalPulls}回</p>
         <p>不足祈願数（最大）: <strong>${worstShort}回</strong></p>
