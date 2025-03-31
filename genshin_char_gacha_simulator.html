@@ -51,12 +51,13 @@
   </label>
 
   <button onclick="simulate()">シミュレーション開始</button>
+       <button onclick="clearForm()">クリア</button>
 
   <div class="result" id="result"></div>
 
   <div class="note">
-    ※期待値は「0.6%→74連以降+6%上昇」のPU50%抽選＆最悪の場合は掴みし明光（3連続すり抜け後は確定PU）に対応。<br>
-    ※課金額は「12,000円で8,080原石（オマケ込み）」で計算。初回2倍は含みません。
+    ※期待値は「0.6%→74連以降+6%上昇」のPU50%抽選＆最悪の場合は掴みし明光（3連続すり抜けPU化）に対応。<br>
+    ※課金額は「12,000円で8,080原石（オマケ込み）」で計算。初回2倍ボーナスは含みません。
   </div>
 
   <script>
@@ -171,6 +172,18 @@
         </table>
       `;
     }
-  </script>
+  
+    function clearForm() {
+      document.getElementById("primogems").value = 0;
+      document.getElementById("fates").value = 0;
+      document.getElementById("welkin").checked = false;
+      document.getElementById("currentPulls").value = 0;
+      document.getElementById("guaranteed").checked = false;
+      document.getElementById("endDate").value = "";
+      document.getElementById("targetPU").value = 1;
+      document.getElementById("result").innerHTML = "";
+    }
+    </script>
+    
 </body>
 </html>
