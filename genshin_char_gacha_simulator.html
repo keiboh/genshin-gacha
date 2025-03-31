@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>原神キャラガチャ計算機（掴みし明光 正式対応）</title>
+  <title>原神キャラガチャ計算機（掴みし明光 完全修正）</title>
   <style>
     body { font-family: sans-serif; padding: 1em; background-color: #f5f5f5; color: #333; }
     label { display: block; margin-top: 1em; }
@@ -64,25 +64,24 @@
       let puCount = 0;
 
       while (puCount < puTarget) {
+        let used = 0;
+
         if (missCount >= 3) {
-          // 掴みし明光でPU
-          pulls += 90;
+          used += 90;
           missCount = 0;
         } else {
-          // すり抜け
-          pulls += 90;
+          used += 90;
           missCount++;
 
           if (missCount >= 3) {
-            // 次で掴みし明光が発動
-            pulls += 90;
+            used += 90;
             missCount = 0;
           } else {
-            // PU確定
-            pulls += 90;
-            // missCount は維持（掴みし明光のため）
+            used += 90;
           }
         }
+
+        pulls += used;
         puCount++;
       }
 
