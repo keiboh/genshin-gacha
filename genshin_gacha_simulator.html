@@ -2,104 +2,130 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>原神ガチャ期待値計算</title>
-    <style>
-        body { font-family: sans-serif; padding: 1em; background-color: #f5f5f5; color: #333; }
-        label { display: block; margin-top: 1em; }
-        input, select { width: 100%; padding: 0.5em; margin-top: 0.2em; }
-        button { margin-top: 1.5em; padding: 0.75em; width: 100%; font-weight: bold; }
-        .result { margin-top: 2em; padding: 1em; background: #fff; border-radius: 8px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>原神ガチャ期待値計算</title>
+  <style>
+    body { font-family: sans-serif; padding: 1em; background-color: #f5f5f5; color: #333; }
+    label { display: block; margin-top: 1em; }
+    input, select { width: 100%; padding: 0.5em; margin-top: 0.2em; }
+    button { margin-top: 1.5em; padding: 0.75em; width: 100%; font-weight: bold; }
+    .result { margin-top: 2em; padding: 1em; background: #fff; border-radius: 8px; }
+    h2 { margin-top: 1.5em; color: #2a2a2a; }
+  </style>
 </head>
 <body>
-    <h1>原神ガチャ期待値計算</h1>
+  <h1>原神ガチャ期待値計算</h1>
 
-    <label>
-        空月の祝福を購入している:
-        <input type="checkbox" id="welkin" />
-    </label>
+  <label>空月の祝福を購入している:
+    <input type="checkbox" id="welkin" />
+  </label>
 
-    <label>
-        手持ち原石:
-        <input type="number" id="primogems" value="0" />
-    </label>
+  <label>手持ち原石:
+    <input type="number" id="primogems" value="0" />
+  </label>
 
-    <label>
-        紡がれた運命（所持数）:
-        <input type="number" id="fates" value="0" />
-    </label>
+  <label>紡がれた運命（所持数）:
+    <input type="number" id="fates" value="0" />
+  </label>
 
-    <label>
-        現在のキャラガチャ祈願回数（★5が出るまでの累積）:
-        <input type="number" id="charPulls" value="0" />
-    </label>
+  <label>現在のキャラガチャ祈願回数:
+    <input type="number" id="charPulls" value="0" />
+  </label>
 
-    <label>
-        すり抜けだった？（前回★5）:
-        <select id="lastLost">
-            <option value="yes">はい（すり抜け）</option>
-            <option value="no">いいえ（PU）</option>
-        </select>
-    </label>
+  <label>現在の「すり抜けカウント」:
+    <input type="number" id="missCount" value="0" min="0" max="3"/>
+  </label>
 
-    <label>
-        「掴みし明光」で何回連続すり抜けした？:
-        <input type="number" id="missCount" value="0" />
-    </label>
+  <label>ガチャ開始日:
+    <input type="date" id="startDate" />
+  </label>
 
-    <label>
-        ガチャ開始日:
-        <input type="date" id="startDate" />
-    </label>
+  <label>ガチャ終了日:
+    <input type="date" id="endDate" />
+  </label>
 
-    <label>
-        ガチャ終了日:
-        <input type="date" id="endDate" />
-    </label>
+  <label>目標PUキャラ数:
+    <input type="number" id="puTarget" value="1" min="1" max="6" />
+  </label>
 
-    <button onclick="calculate()">計算する</button>
+  <button onclick="calculate()">計算する</button>
 
-    <div class="result" id="result"></div>
+  <div class="result" id="result"></div>
 
-    <script>
-        function calculate() {
-            const welkin = document.getElementById("welkin").checked;
-            const primogems = parseInt(document.getElementById("primogems").value) || 0;
-            const fates = parseInt(document.getElementById("fates").value) || 0;
-            const charPulls = parseInt(document.getElementById("charPulls").value) || 0;
-            const lastLost = document.getElementById("lastLost").value === "yes";
-            const missCount = parseInt(document.getElementById("missCount").value) || 0;
-            const startDate = new Date(document.getElementById("startDate").value);
-            const endDate = new Date(document.getElementById("endDate").value);
+  <script>
+    function calculateMaxPulls(puTarget, missCount) {
+      let pulls = 0;
+      let puCount = 0;
 
-            const today = new Date();
-            const daysLeft = Math.max(0, Math.floor((endDate - today) / (1000 * 60 * 60 * 24)));
+      while (puCount < puTarget) {
+        if (missCount >= 3) {
+          pulls += 90;
+          missCount = 0;
+        } else {
+          pulls += 90;
+          missCount += 1;
 
-            let dailyPrimogems = 60; // デイリー任務
-            if (welkin) dailyPrimogems += 90; // 空月
-
-            const futurePrimogems = daysLeft * dailyPrimogems;
-            const totalPrimogems = primogems + futurePrimogems + (fates * 160);
-            const pullsAvailable = Math.floor(totalPrimogems / 160);
-
-            // キャラ2回PU（PU確定済みと仮定）→ 最大180回、期待値150回
-            const charNeeded = 150;
-            const pullsShort = Math.max(0, charNeeded - (pullsAvailable + charPulls));
-            const primogemsNeeded = pullsShort * 160;
-            const yenNeeded = Math.ceil((primogemsNeeded / 6480) * 12000);
-
-            const result = document.getElementById("result");
-            result.innerHTML = `
-                <h2>結果</h2>
-                <p>残り日数: ${daysLeft}日</p>
-                <p>合計引ける回数（見込み）: ${pullsAvailable + charPulls}回</p>
-                <p>★5キャラ（PU）2回 引くにはあと <strong>${pullsShort}回</strong> 必要</p>
-                <p>追加原石: ${primogemsNeeded}個</p>
-                <p><strong>想定課金額: 約 ${yenNeeded.toLocaleString()} 円</strong></p>
-            `;
+          if (missCount >= 3) {
+            pulls += 90;
+            missCount = 0;
+          } else {
+            pulls += 90;
+          }
         }
-    </script>
+        puCount += 1;
+      }
+      return pulls;
+    }
+
+    function calculate() {
+      const welkin = document.getElementById("welkin").checked;
+      const primogems = parseInt(document.getElementById("primogems").value) || 0;
+      const fates = parseInt(document.getElementById("fates").value) || 0;
+      const charPulls = parseInt(document.getElementById("charPulls").value) || 0;
+      const missCount = parseInt(document.getElementById("missCount").value) || 0;
+      const puTarget = parseInt(document.getElementById("puTarget").value) || 1;
+      const startDate = new Date(document.getElementById("startDate").value);
+      const endDate = new Date(document.getElementById("endDate").value);
+
+      const today = new Date();
+      const daysLeft = Math.max(0, Math.floor((endDate - today) / (1000 * 60 * 60 * 24)));
+
+      let dailyPrimogems = 60;
+      if (welkin) dailyPrimogems += 90;
+
+      const futurePrimogems = daysLeft * dailyPrimogems;
+      const totalPrimogems = primogems + futurePrimogems + (fates * 160);
+      const pullsAvailable = Math.floor(totalPrimogems / 160);
+      const currentPulls = pullsAvailable + charPulls;
+
+      const worstTotalPulls = calculateMaxPulls(puTarget, missCount);
+      const worstShort = Math.max(0, worstTotalPulls - currentPulls);
+      const worstPrimogems = worstShort * 160;
+      const worstYen = Math.ceil((worstPrimogems / 6480) * 12000);
+
+      const expectedPulls = Math.ceil(75 * puTarget);
+      const expectedShort = Math.max(0, expectedPulls - currentPulls);
+      const expectedPrimogems = expectedShort * 160;
+      const expectedYen = Math.ceil((expectedPrimogems / 6480) * 12000);
+
+      const result = document.getElementById("result");
+      result.innerHTML = `
+        <h2>【期待値でのシミュレーション】</h2>
+        <p>目標PU数: ${puTarget}体</p>
+        <p>合計引ける回数（見込み）: ${currentPulls}回</p>
+        <p>期待値ベースでの不足祈願数: <strong>${expectedShort}回</strong></p>
+        <p>追加原石（期待値）: ${expectedPrimogems}個</p>
+        <p><strong>想定課金額（期待値）: 約 ${expectedYen.toLocaleString()} 円</strong></p>
+
+        <h2>【最悪の場合のシミュレーション】（掴みし明光あり）</h2>
+        <p>現在のすり抜けカウント: ${missCount}回</p>
+        <p>必要最大祈願数: ${worstTotalPulls}回</p>
+        <p>不足祈願数（最大）: <strong>${worstShort}回</strong></p>
+        <p>追加原石（最悪）: ${worstPrimogems}個</p>
+        <p><strong>想定課金額（最悪）: 約 ${worstYen.toLocaleString()} 円</strong></p>
+      `;
+    }
+  </script>
 </body>
 </html>
